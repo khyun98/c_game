@@ -6,13 +6,12 @@ void Init() {}
 void Update() {}
 void Render() {
 	ScreenClear();
-
+	//출력코드
 
 	ScreenFlipping();
 }
 void Release() {}
 
-clock_t curTime;
 
 int main() {
 	ScreenInit();
@@ -22,11 +21,6 @@ int main() {
 	while (1) {
 		Update();
 		Render();
-		curTime = clock();
-		while (curTime-oldTime<33) {//대기코드
-			curTime = clock();
-		}
-		oldTime = curTime;
 	}
 
 	Release();
