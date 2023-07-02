@@ -17,7 +17,6 @@ int main() {
 	ScreenInit();
 	Init();
 
-	clock_t oldTime=clock();
 	while (1) {
 		Update();
 		Render();
