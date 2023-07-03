@@ -1,8 +1,7 @@
 #pragma once
 
-
 typedef struct _PLAYER {
-	int nCenterX, nCenterY;
-	int nMoveX, nMoveY;
-	int nX, nY;
+	int nCenterX, nCenterY;//Áß½ÉÁÂÇ¥
+	int nMoveX, nMoveY;//ÀÌµ¿ÁÂÇ¥
+	int nX, nY;//
 }PLAYER;
