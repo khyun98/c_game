@@ -12,3 +12,12 @@ typedef struct _BALL {
 	clock_t MoveTime;
 	clock_t OldTime;
 }BALL;
+
+typedef struct _GOALDAE {
+	int nPosX, nPosY;
+	int nLength;//골대길이
+	int nLineX[7];//최대 7
+	int nMovement;
+	clock_t moveTime;
+	clock_t oldTime;
+}GOALDAE;
