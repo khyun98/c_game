@@ -8,6 +8,9 @@ PLAYER g_sPlayer;
 char g_strPlayer[] = "┗━●━┛";
 int g_nLength;
 
+BALL g_sBall;
+char g_strBall[] = "0";
+
 void Init() {
 	g_nLength = strlen(g_strPlayer);
 	g_sPlayer.nCenterX = (g_nLength+1)/2;
@@ -15,15 +18,39 @@ void Init() {
 	g_sPlayer.nPosX = 20;
 	g_sPlayer.nPosY = 22;
 	g_sPlayer.nX = g_sPlayer.nPosX - g_sPlayer.nCenterX;
+
+	g_sBall.nIsReady = 1;
+	g_sBall.nPosX = g_sPlayer.nPosX;
+	g_sBall.nPosY = g_sPlayer.nPosY-1;
+	g_sBall.MoveTime = 50;
 }
 
-void Update() {}
+void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
+	if (g_sBall.nIsReady == 1) {
+		g_sBall.nPosX = g_sPlayer.nPosX;
+		g_sBall.nPosY = g_sPlayer.nPosY-1;
+	}
+	else {
+		clock_t curTime = clock();
+		if (curTime - g_sBall.OldTime > g_sBall.MoveTime) {//시간간격 기준 동기화 기법
+			if (g_sBall.nPosY-1>0) {//경계 충돌 판정
+				g_sBall.nPosY--;
+				g_sBall.OldTime = curTime;// 'k'키 누르면 oldTime 시간 기록함.
+			}
+			else {
+				g_sBall.nIsReady = 1;
+				g_sBall.nPosX = g_sPlayer.nPosX;
+				g_sBall.nPosY = g_sPlayer.nPosY - 1;
+			}
+		}
+	}
+}
 
 void Render() {
 	char tempBuffer[100] = { 0, };
 	ScreenClear();
 	
-
+	//플레이어 위치별 렌더
 	if (g_sPlayer.nX < 0) {
 		ScreenPrint(0, g_sPlayer.nPosY, &g_strPlayer[-1 * g_sPlayer.nX]);
 	}
@@ -34,10 +61,19 @@ void Render() {
 	else if(g_sPlayer.nX>=0&&g_sPlayer.nX<=79){
 		ScreenPrint(g_sPlayer.nX,g_sPlayer.nPosY,g_strPlayer);
 	}
+
+	//공 렌더
+	ScreenPrint(g_sBall.nPosX, g_sBall.nPosY, g_strBall);
+	
+	//플레이어 위치 문자 출력
 	memset(tempBuffer, 0, sizeof(tempBuffer));
 	sprintf_s(tempBuffer, sizeof(tempBuffer),"player position x:%d y:%d", g_sPlayer.nPosX, g_sPlayer.nPosY);
 	ScreenPrint(0, 0, tempBuffer);
 	
+	memset(tempBuffer, 0, sizeof(tempBuffer));
+	sprintf_s(tempBuffer, sizeof(tempBuffer), "ball position x:%d y:%d", g_sBall.nPosX, g_sBall.nPosY);
+	ScreenPrint(0, 50, tempBuffer);
+
 
 	ScreenFlipping();
 }
@@ -78,7 +114,13 @@ int main() {
 
 				g_sPlayer.nX = g_sPlayer.nPosX - g_sPlayer.nCenterX;
 				break;
-			case 'k':
+			case 'k'://슛 동작
+				if (g_sBall.nIsReady==1) {
+					//g_sBall.nPosX = g_sPlayer.nPosX;
+					//g_sBall.nPosY = g_sPlayer.nPosY - 1;
+					g_sBall.OldTime = clock();
+					g_sBall.nIsReady = 0;
+				}
 				break;
 			}
 		}
