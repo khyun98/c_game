@@ -139,10 +139,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="effect.h" />
     <ClInclude Include="Screen.h" />
     <ClInclude Include="solid.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="effect.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="Screen.c" />
   </ItemGroup>

@@ -3,6 +3,10 @@
 #include "solid.h"
 #include <string.h>
 #include "Screen.h"
+#include "effect.h"
+
+EFFECT g_sEffect;
+int g_nIsGoal;
 
 int g_nScore=0;
 
@@ -16,6 +20,7 @@ char g_strBall[] = "0";
 GOALDAE g_sGoalDae;
 
 void Init() {
+	//플레이어 초기화
 	g_nLength = strlen(g_strPlayer);
 	g_sPlayer.nCenterX = (g_nLength+1)/2;
 	g_sPlayer.nCenterY = 0;
@@ -23,11 +28,13 @@ void Init() {
 	g_sPlayer.nPosY = 22;
 	g_sPlayer.nX = g_sPlayer.nPosX - g_sPlayer.nCenterX;
 
+	//공 초기화
 	g_sBall.nIsReady = 1;
 	g_sBall.nPosX = g_sPlayer.nPosX;
 	g_sBall.nPosY = g_sPlayer.nPosY-1;
 	g_sBall.MoveTime = 50;
 
+	//골대 초기화
 	g_sGoalDae.nPosX = 20;
 	g_sGoalDae.nPosY = 4;
 	g_sGoalDae.nLength = 1;
@@ -39,6 +46,9 @@ void Init() {
 		//곱하기 2는 골대 표현 문자가 2바이트를 쓰는 특수문자이기 때문
 	}
 
+	//골 이펙트 초기화
+	g_sEffect.StayTime=3000;
+	g_nIsGoal = 0;
 }
 
 void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
@@ -84,10 +94,18 @@ void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
 				g_sBall.nPosY = g_sPlayer.nPosY - 1;
 				if (g_sGoalDae.nPosX+2 <= g_sBall.nPosX && g_sGoalDae.nLineX[nGoalDaeLength - 1] + 2 +2 -2 >= g_sBall.nPosX) {
 					g_nScore++;
+					g_nIsGoal = 1;
+					g_sEffect.StartTime = clock();
 					//골인 판정
 				}
 			}
 		}
+	}
+
+	//골 세러머니 데이터 업데이트
+	if (g_nIsGoal == 1) {
+		if (curTime - g_sEffect.StayTime > g_sEffect.StayTime)
+			g_nIsGoal = 0;
 	}
 }
 
@@ -135,8 +153,12 @@ void Render() {
 
 	//스코어 위치 문자 출력
 	memset(tempBuffer, 0, sizeof(tempBuffer));
-	sprintf_s(tempBuffer, sizeof(tempBuffer), "goal score x:%d\n", g_nScore);
+	sprintf_s(tempBuffer, sizeof(tempBuffer), "goal score :%d ", g_nScore);
 	ScreenPrint(0, 200, tempBuffer);
+	
+	//골 세레머니 출력
+	if (g_nIsGoal == 1)
+		goalMessage(10, 5);
 
 	ScreenFlipping();
 }
