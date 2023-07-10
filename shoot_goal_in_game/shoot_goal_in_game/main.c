@@ -4,6 +4,8 @@
 #include <string.h>
 #include "Screen.h"
 
+int g_nScore=0;
+
 PLAYER g_sPlayer;
 char g_strPlayer[] = "┗━●━┛";
 int g_nLength;
@@ -27,7 +29,7 @@ void Init() {
 	g_sBall.MoveTime = 50;
 
 	g_sGoalDae.nPosX = 20;
-	g_sGoalDae.nPosY = 2;
+	g_sGoalDae.nPosY = 4;
 	g_sGoalDae.nLength = 1;
 	g_sGoalDae.moveTime = 100;
 	g_sGoalDae.nMovement = 1;
@@ -42,10 +44,9 @@ void Init() {
 void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
 	clock_t curTime = clock();//시간간격 기준 동기화 기법
 
-
 	//골대 데이터 업데이트
+	int nGoalDaeLength = g_sGoalDae.nLength * 2 + 1;
 	if (curTime - g_sGoalDae.oldTime > g_sGoalDae.moveTime) {
-		int nGoalDaeLength = g_sGoalDae.nLength * 2 + 1;
 		if (g_sGoalDae.nPosX <= 0|| g_sGoalDae.nPosX + 2 + g_sGoalDae.nLength * 2 + 1 + 2 >= 79) {
 			g_sGoalDae.nMovement = g_sGoalDae.nMovement * -1;
 		}
@@ -56,7 +57,6 @@ void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
 		}
 		g_sGoalDae.oldTime = curTime;
 	}
-	
 
 	//공 데이터 업데이트
 	if (g_sBall.nIsReady == 1) {
@@ -73,6 +73,19 @@ void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
 				g_sBall.nIsReady = 1;
 				g_sBall.nPosX = g_sPlayer.nPosX;
 				g_sBall.nPosY = g_sPlayer.nPosY - 1;
+			}
+		}
+
+		//골대와 경계 충돌 판정
+		if (g_sBall.nPosY == g_sGoalDae.nPosY) {
+			if (g_sGoalDae.nPosX <= g_sBall.nPosX && g_sGoalDae.nLineX[nGoalDaeLength - 1] + 2 + 2 >= g_sBall.nPosX) {
+				g_sBall.nIsReady = 1;
+				g_sBall.nPosX = g_sPlayer.nPosX;
+				g_sBall.nPosY = g_sPlayer.nPosY - 1;
+				if (g_sGoalDae.nPosX+2 <= g_sBall.nPosX && g_sGoalDae.nLineX[nGoalDaeLength - 1] + 2 +2 -2 >= g_sBall.nPosX) {
+					g_nScore++;
+					//골인 판정
+				}
 			}
 		}
 	}
@@ -117,8 +130,13 @@ void Render() {
 
 	//골대 위치 문자 출력
 	memset(tempBuffer, 0, sizeof(tempBuffer));
-	sprintf_s(tempBuffer, sizeof(tempBuffer), "ball position x:%d y:%d", g_sGoalDae.nPosX + 2 + g_sGoalDae.nLength * 2 + 1 + 2,g_sGoalDae.nPosY);
-	ScreenPrint(0, 100, tempBuffer);
+	sprintf_s(tempBuffer, sizeof(tempBuffer), "ball position x:%d y:%d\n", g_sGoalDae.nPosX + 2 + g_sGoalDae.nLength * 2 + 1 + 2,g_sGoalDae.nPosY);
+	ScreenPrint(0, 150, tempBuffer);
+
+	//스코어 위치 문자 출력
+	memset(tempBuffer, 0, sizeof(tempBuffer));
+	sprintf_s(tempBuffer, sizeof(tempBuffer), "goal score x:%d\n", g_nScore);
+	ScreenPrint(0, 200, tempBuffer);
 
 	ScreenFlipping();
 }
@@ -139,7 +157,8 @@ int main() {
 			switch (nKey) {
 			case 'j':
 				if (g_sPlayer.nPosX <= 1)
-					break;
+					break;//왼쪽 경계 충돌
+
 				g_sPlayer.nPosX--;//이동
 				nRemain = g_nLength - (g_sPlayer.nCenterX + 1);
 				if (g_sPlayer.nPosX + nRemain > 79 || g_sPlayer.nPosX - g_sPlayer.nCenterX < 0)//좌접
@@ -150,7 +169,8 @@ int main() {
 				break;
 			case 'l':
 				if (g_sPlayer.nPosX >= 77)
-					break;
+					break;//오른쪽 경계 충돌
+
 				g_sPlayer.nPosX++;//이동
 				nRemain = g_nLength - (g_sPlayer.nCenterX + 1);
 				//중심좌표로 부터 캐릭터 크기. 우측경계접촉 확인용
