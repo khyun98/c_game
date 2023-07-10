@@ -5,6 +5,11 @@
 #include "Screen.h"
 #include "effect.h"
 
+typedef enum _GAME_STATE {
+	INIT=0, READY,RUNNING, STOP,
+	SUCCESS,FAILED, RESULT
+}GAME_STATE;
+
 EFFECT g_sEffect;
 int g_nIsGoal;
 
@@ -104,7 +109,7 @@ void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
 
 	//골 세러머니 데이터 업데이트
 	if (g_nIsGoal == 1) {
-		if (curTime - g_sEffect.StayTime > g_sEffect.StayTime)
+		if (curTime - g_sEffect.StartTime > g_sEffect.StayTime)
 			g_nIsGoal = 0;
 	}
 }
