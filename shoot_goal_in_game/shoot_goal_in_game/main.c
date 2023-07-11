@@ -5,11 +5,8 @@
 #include "Screen.h"
 #include "effect.h"
 #include "gamestate.h"
-//fix 
-// state message
-// render remain problem
-// 
-//미션 실패시 키보드 입력 이상함
+
+//23.07.11 end
 
 #define STAGECOUNT 10
 
