@@ -5,15 +5,15 @@
 #include "Screen.h"
 #include "effect.h"
 #include "gamestate.h"
-
-//골대 움직이는 범위 변경 안되는 거
-//화면 상태 출력할 때 디테일 부족한거
-//화면 전환될 때 전에 있던게 안 지워지고 그대로 같이 출력 될때
+//fix 
+// state message
+// render remain problem
+// 
+//미션 실패시 키보드 입력 이상함
 
 #define STAGECOUNT 10
 
-int g_nAnswer=0;
-int g_nKey;
+int g_nWill = 1;
 
 GAME_STATE g_GAMESTATE;
 int g_nStageNum, g_nStageGoal, g_nGameStartTime;
@@ -88,7 +88,7 @@ void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
 			}
 		}
 		else {
-			sprintf_s(g_strStateMessage, sizeof(g_strStateMessage), "stage %d start",g_nStageNum);
+			sprintf_s(g_strStateMessage, sizeof(g_strStateMessage), "stage %d start in 3sec,,,",g_nStageNum);
 			if (curTime - g_nOldTime > 3000) {
 				g_nOldTime = curTime;
 				g_GAMESTATE = READY;
@@ -125,8 +125,9 @@ void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
 			g_GAMESTATE = STOP;
 		}
 		else {
-			sprintf_s(g_strStateMessage, sizeof(g_strStateMessage), "%d seconds left",
-				(g_sStageInfo[g_nStageNum - 1].LimitTime - (curTime - g_nGameStartTime))/1000);
+			sprintf_s(g_strStateMessage, sizeof(g_strStateMessage), "%d seconds left %d goal left",
+				(g_sStageInfo[g_nStageNum - 1].LimitTime - (curTime - g_nGameStartTime))/1000,
+				g_nStageGoal-g_nScore);
 			UpdatingGame();
 			if (g_nScore >= g_nStageGoal)
 				g_GAMESTATE = STOP;
@@ -167,17 +168,11 @@ void Update() {//player와 상관없이 독립적으로 게임 자체적으로 업데이트할 내용
 		break;
 	case FAILED:
 		sprintf_s(g_strStateMessage,sizeof(g_strStateMessage) ,"try again? y/n");
-		g_nAnswer = 1;
-		if (g_nKey == 'y') {
-			g_GAMESTATE = INIT;
-			g_nOldTime = curTime;
-		}
-		if (g_nKey == 'n') {
-			g_GAMESTATE = RESULT;
-			g_nOldTime = curTime;
-		}
 		break;
 	case RESULT:
+		sprintf_s(g_strStateMessage, sizeof(g_strStateMessage), "good bye");
+		if(curTime-g_nOldTime>3000)
+			g_nWill = 0;
 		break;
 	}
 }
@@ -188,7 +183,7 @@ void UpdatingGame() {
 	//골대 데이터 업데이트
 	int nGoalDaeLength = g_sGoalDae.nLength * 2 + 1;
 	if (curTime - g_sGoalDae.oldTime > g_sGoalDae.moveTime) {
-		if (g_sGoalDae.nPosX <= 0 || g_sGoalDae.nPosX + 2 + g_sGoalDae.nLength * 2 + 1 + 2 >= 79) {
+		if (g_sGoalDae.nPosX <= 0 || g_sGoalDae.nPosX + 2 + g_sGoalDae.nLength * 2 + 1 + 2 >= g_sStageInfo[g_nStageNum-1].nGoalDaeDist) {
 			g_sGoalDae.nMovement = g_sGoalDae.nMovement * -1;
 		}
 
@@ -244,52 +239,55 @@ void Render() {
 	char tempBuffer[100] = { 0, };
 	ScreenClear();
 	
-	//골대 렌더
-	int nGoalDaeLen=g_sGoalDae.nLength*2+1;
-	ScreenPrint(g_sGoalDae.nPosX, g_sGoalDae.nPosY, "□");
-	for (int i = 0; i < nGoalDaeLen; i++)
-		ScreenPrint(g_sGoalDae.nLineX[i], g_sGoalDae.nPosY, "━");
-	ScreenPrint(g_sGoalDae.nLineX[nGoalDaeLen - 1]/*골라인 마지막 좌표*/ + 2, g_sGoalDae.nPosY, "□");
+	if (g_GAMESTATE == RUNNING) {
+		//골대 렌더
+		int nGoalDaeLen = g_sGoalDae.nLength * 2 + 1;
+		ScreenPrint(g_sGoalDae.nPosX, g_sGoalDae.nPosY, "□");
+		for (int i = 0; i < nGoalDaeLen; i++)
+			ScreenPrint(g_sGoalDae.nLineX[i], g_sGoalDae.nPosY, "━");
+		ScreenPrint(g_sGoalDae.nLineX[nGoalDaeLen - 1]/*골라인 마지막 좌표*/ + 2, g_sGoalDae.nPosY, "□");
 
 
-	//플레이어 위치별 렌더
-	if (g_sPlayer.nX < 0) {
-		ScreenPrint(0, g_sPlayer.nPosY, &g_strPlayer[-1 * g_sPlayer.nX]);
+		//플레이어 위치별 렌더
+		if (g_sPlayer.nX < 0) {
+			ScreenPrint(0, g_sPlayer.nPosY, &g_strPlayer[-1 * g_sPlayer.nX]);
+		}
+		else if (g_sPlayer.nX + g_nLength > 79) {
+			strncpy_s(tempBuffer, sizeof(tempBuffer), g_strPlayer, g_nLength - (g_sPlayer.nX + g_nLength - 79));
+			ScreenPrint(g_sPlayer.nX, g_sPlayer.nPosY, tempBuffer);
+		}
+		else if (g_sPlayer.nX >= 0 && g_sPlayer.nX <= 79) {
+			ScreenPrint(g_sPlayer.nX, g_sPlayer.nPosY, g_strPlayer);
+		}
+
+		//공 렌더
+		ScreenPrint(g_sBall.nPosX, g_sBall.nPosY, g_strBall);
+
+		//플레이어 위치 문자 출력
+		//memset(tempBuffer, 0, sizeof(tempBuffer));
+		//sprintf_s(tempBuffer, sizeof(tempBuffer),"player position x:%d y:%d", g_sPlayer.nPosX, g_sPlayer.nPosY);
+		//ScreenPrint(0, 0, tempBuffer);
+
+		//공 위치 문자 출력
+		//memset(tempBuffer, 0, sizeof(tempBuffer));
+		//sprintf_s(tempBuffer, sizeof(tempBuffer), "ball position x:%d y:%d", g_sBall.nPosX, g_sBall.nPosY);
+		//ScreenPrint(0, 50, tempBuffer);
+
+		//골대 위치 문자 출력
+		memset(tempBuffer, 0, sizeof(tempBuffer));
+		sprintf_s(tempBuffer, sizeof(tempBuffer), "goaldae position x:%d y:%d\n", g_sGoalDae.nPosX + 2 + g_sGoalDae.nLength * 2 + 1 + 2, g_sGoalDae.nPosY);
+		ScreenPrint(0, 1, tempBuffer);
+
+		//스코어 위치 문자 출력
+		//memset(tempBuffer, 0, sizeof(tempBuffer));
+		//sprintf_s(tempBuffer, sizeof(tempBuffer), "goal score :%d ", g_nScore);
+		//ScreenPrint(0, 200, tempBuffer);
+
+		//골 세레머니 출력
+		if (g_nIsGoal == 1)
+			goalMessage(10, 5);
 	}
-	else if (g_sPlayer.nX + g_nLength > 79) {
-		strncpy_s(tempBuffer, sizeof(tempBuffer), g_strPlayer, g_nLength - (g_sPlayer.nX + g_nLength - 79));
-		ScreenPrint(g_sPlayer.nX, g_sPlayer.nPosY, tempBuffer);
-	}
-	else if(g_sPlayer.nX>=0&&g_sPlayer.nX<=79){
-		ScreenPrint(g_sPlayer.nX,g_sPlayer.nPosY,g_strPlayer);
-	}
-
-	//공 렌더
-	ScreenPrint(g_sBall.nPosX, g_sBall.nPosY, g_strBall);
 	
-	//플레이어 위치 문자 출력
-	//memset(tempBuffer, 0, sizeof(tempBuffer));
-	//sprintf_s(tempBuffer, sizeof(tempBuffer),"player position x:%d y:%d", g_sPlayer.nPosX, g_sPlayer.nPosY);
-	//ScreenPrint(0, 0, tempBuffer);
-	
-	//공 위치 문자 출력
-	//memset(tempBuffer, 0, sizeof(tempBuffer));
-	//sprintf_s(tempBuffer, sizeof(tempBuffer), "ball position x:%d y:%d", g_sBall.nPosX, g_sBall.nPosY);
-	//ScreenPrint(0, 50, tempBuffer);
-
-	//골대 위치 문자 출력
-	memset(tempBuffer, 0, sizeof(tempBuffer));
-	sprintf_s(tempBuffer, sizeof(tempBuffer), "goaldae position x:%d y:%d\n", g_sGoalDae.nPosX + 2 + g_sGoalDae.nLength * 2 + 1 + 2,g_sGoalDae.nPosY);
-	ScreenPrint(0,1, tempBuffer);
-
-	//스코어 위치 문자 출력
-	//memset(tempBuffer, 0, sizeof(tempBuffer));
-	//sprintf_s(tempBuffer, sizeof(tempBuffer), "goal score :%d ", g_nScore);
-	//ScreenPrint(0, 200, tempBuffer);
-	
-	//골 세레머니 출력
-	if (g_nIsGoal == 1)
-		goalMessage(10, 5);
 
 	//게임 상태 문구 출력
 	ScreenPrint(0, 0, g_strStateMessage);
@@ -300,20 +298,28 @@ void Render() {
 void Release() {}
 
 int main() {
+	int g_nKey;
 	int nRemain;
 
 	ScreenInit();
 	Init();
 
-	while (1) {
+	while (g_nWill) {
 		if (_kbhit()) {//키보드
 			g_nKey = _getch();
 			if (g_nKey == 'q')
 				break;
 			switch (g_nKey) {
-			case 'y': case 'n':
-				if (g_nAnswer == 1) {//프로그램의 질의가 있었는가? 예.
-					g_nAnswer = 0;//대답했으니 다른 질문 ㄱ.
+			case 'y': 
+				if (g_GAMESTATE == FAILED) {
+					g_GAMESTATE = INIT;
+					g_nOldTime = clock();
+				}
+				break;
+			case 'n':
+				if (g_GAMESTATE == FAILED) {
+					g_GAMESTATE = RESULT;
+					g_nOldTime = clock();
 				}
 				break;
 			case 'j':
