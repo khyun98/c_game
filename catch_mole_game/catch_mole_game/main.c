@@ -39,6 +39,7 @@ void MoleUnBurrow(int index);
 void MoleSmashed(int index);
 void MoleRender();
 void MoleSpeedSet( int time);
+void MoleRandom(int index);
 
 //두더지와 망치
 void HammerMoleEvaluate();
@@ -112,8 +113,10 @@ void Update() {
 
 	switch (g_STAGESTATE) {
 	case INIT:
+		for(int i=0;i<9;i++)
+			MoleRandom(i);
 		MoleSpeedSet(500-g_nStageNum*40);
-		g_sHammer.coolTime = 300 + g_nStageNum * 10;
+		g_sHammer.coolTime = 350 + g_nStageNum * 10;
 		g_nStageGoal = 15+ 15 * g_nStageNum;
 		g_cStageTime = 40000 - 100 * g_nStageNum;
 		g_STAGESTATE = READY;
@@ -135,8 +138,12 @@ void Update() {
 			g_STAGESTATE = STOP;
 		}
 		if (g_nScore >= g_nStageGoal) {
-			g_cGameTime = curTime;
-			g_STAGESTATE = STOP;
+			sprintf_s(g_strGameMessage, sizeof(g_strGameMessage),
+				"success! evaluate in 2sec,,");
+			if (curTime - g_cGameTime > 2000) {
+				g_cGameTime = curTime;
+				g_STAGESTATE = STOP;
+			}
 		}
 		break;
 	case STOP:
@@ -190,9 +197,9 @@ void Update() {
 void UpdateGame() {
 	clock_t curTime = clock();
 	sprintf_s(g_strGameMessage, sizeof(g_strGameMessage),
-		"stage %d\ntime left : %d  score : %d/%d", g_nStageNum, 
+		"stage %d\ntime left : %d  score : %d/%d, 9th mole rand %d", g_nStageNum, 
 		(g_cStageTime - (curTime - g_cGameTime)) / 1000, g_nScore,
-		g_nStageGoal);
+		g_nStageGoal,g_sMole[8].moleRandom);
 	//Hammer ing data update
 	if (g_sHammer.isIng == 1) {
 		if (curTime - g_sHammer.ingTime > g_sHammer.coolTime) {
@@ -202,40 +209,41 @@ void UpdateGame() {
 
 	//Mole data update
 	for (int i = 0; i < 9; i++) {
-		if (g_sMole[i].moleStatus == BURROW) {
+		switch (g_sMole[i].moleStatus) {
+		case BURROW:
 			MoleBurrow(i);
 			if ((curTime - g_cGameTime) % g_sMole[i].moleRandom < 20) {
 				g_sMole[i].wakeTime = clock();
 				g_sMole[i].moleStatus = PEEK1;
 			}
-		}
-		else if (g_sMole[i].moleStatus == PEEK1) {
+			break;
+		case PEEK1:
 			MolePeek1(i);
 			if (curTime - g_sMole[i].wakeTime > g_sMole[i].movingTime) {
 				g_sMole[i].moleStatus = UNBURROW;
 			}
-		}
-		else if (g_sMole[i].moleStatus == UNBURROW) {
+			break;
+		case UNBURROW:
 			MoleUnBurrow(i);
 			if (curTime - g_sMole[i].wakeTime > g_sMole[i].movingTime * 2) {
 				g_sMole[i].moleStatus = PEEK2;
 			}
-		}
-		else if (g_sMole[i].moleStatus == PEEK2) {
+			break;
+		case PEEK2:
 			MolePeek2(i);
 			if (curTime - g_sMole[i].wakeTime > g_sMole[i].movingTime * 3) {
 				g_sMole[i].moleStatus = BURROW;
 			}
-		}
-		else if (g_sMole[i].moleStatus == SMASHED) {
+			break;
+		case SMASHED:
 			MoleSmashed(i);
 			if (curTime - g_sMole[i].wakeTime > 1500) {
+				MoleRandom(i);
 				g_sMole[i].moleStatus = BURROW;
 			}
+			break;
 		}
-	}
-
-	
+	}	
 }
 
 void Render() {
@@ -355,14 +363,17 @@ void MolePeek2(int index) {
 	strcpy_s(g_sMole[index].feature[1], sizeof(g_sMole[index].feature[0]), "^~^");
 	strcpy_s(g_sMole[index].feature[2], sizeof(g_sMole[index].feature[0]), "|_|");
 }
-void MoleInit(int index) {
-	srand(index);
+void MoleRandom(int index) { 
+	srand((int)clock()+index);
 
 	MoleBurrow(index);
-	int tempRandom=rand() % 10000 + 1;
+	int tempRandom = rand() % 10000 + 1;
 	while (tempRandom < 3000)
 		tempRandom = rand() % 10000 + 1;
 	g_sMole[index].moleRandom = tempRandom;
+}
+void MoleInit(int index) {
+	MoleRandom(index);
 
 	int share = index / 3;
 	int rest = index % 3;
@@ -394,4 +405,3 @@ void MoleRender() {
 	ScreenPrint(5, 20 - 1, g_sMole[1 - 1].feature[1]); ScreenPrint(25, 20 - 1, g_sMole[2 - 1].feature[1]); ScreenPrint(45, 20 - 1, g_sMole[3 - 1].feature[1]);
 	ScreenPrint(5, 20, g_sMole[1 - 1].feature[2]); ScreenPrint(25, 20, g_sMole[2 - 1].feature[2]); ScreenPrint(45, 20, g_sMole[3 - 1].feature[2]);
 }
-
